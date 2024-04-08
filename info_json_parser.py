@@ -11,6 +11,7 @@ db = Database()
 asyncio.get_event_loop().run_until_complete(db.async_init())
 
 async def get_new_products(bot):
+    print("start getting new products")
     if not os.path.exists('src'):
         os.makedirs('src')
 
@@ -19,6 +20,8 @@ async def get_new_products(bot):
 
     result_dict = {}
     await clear_src_folder()
+
+    all_ids = await db.take_all_ids()
 
     if 'payload' in data and isinstance(data['payload'], list):
         payload_data = data['payload']
@@ -40,9 +43,12 @@ async def get_new_products(bot):
                         'bigImage': item.get('image', {}).get('bigImage', '')
                     }
 
-                    other_codes = set(category.get('category', {}).get('code') for category in merchant_categories)
-                    if 'Cashback-day' in other_codes or 'new' in other_codes:
-                        result_dict[item.get('id')]['otherCodes'] = other_codes
+                    if item.get('id') in all_ids:
+                        result_dict[item.get('id')]['new'] = False
+                    else:
+                        print(item.get('id'))
+                        result_dict[item.get('id')]['new'] = True
+                    print(result_dict)
 
                     image_url = result_dict[item.get('id')]['bigImage']
                     if image_url:
@@ -52,3 +58,4 @@ async def get_new_products(bot):
                             image_file.write(response.content)
 
     await db.add_products(result_dict)
+    await bot.send_message(chat_id='XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX', text="end getting new products")

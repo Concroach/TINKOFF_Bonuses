@@ -13,3 +13,5 @@ async def clear_src_folder():
                 shutil.rmtree(file_path)
         except Exception as e:
             print(f"Не удалось удалить {file_path}. Причина: {e}")
+
+    print(f"Все содержимое папки {folder} было удалено.")

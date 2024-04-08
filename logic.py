@@ -7,13 +7,14 @@ from datetime import datetime
 async def mailing(bot):
     db = Database()
     await db.async_init()
-    
     users = await db.get_all_users()
-    for chat_id in users:
-        await bot.send_message(chat_id=chat_id, text="📨 Рассылка")
-
     product_infos = await db.get_only_new_products()
     if product_infos is not None:
+        for chat_id in users:
+            try:
+                await bot.send_message(chat_id=chat_id, text="📨 Рассылка")
+            except:
+                print("blocked")
         for product_info in product_infos.values():
             message = ''
             if product_info['closedate'] == product_info['opendate']:

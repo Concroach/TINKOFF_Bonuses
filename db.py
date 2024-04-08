@@ -6,11 +6,11 @@ class Database:
         print("init")
 
     async def async_init(self):
-        self.connection = await psycopg.AsyncConnection.connect(user='XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX', 
-                                                    password='XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX', 
-                                                    dbname='XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX',
-                                                    host='XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX',
-                                                    port='XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX',)
+        self.connection = await psycopg.AsyncConnection.connect(user='XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX', 
+                                                    password='XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX', 
+                                                    dbname='XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX', 
+                                                    host='XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX',
+                                                    port='XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX')
         self.cursor = self.connection.cursor() 
     
     async def user_exists(self, user_id):
@@ -32,7 +32,13 @@ class Database:
         rows = await self.cursor.fetchall()
         user_ids = [row[0] for row in rows]
         return user_ids
-        
+    
+    async def count_users(self):
+        await self.cursor.execute("SELECT * FROM users")
+        count = await self.cursor.fetchall()
+        print(len(count))
+        return len(count)
+
     async def add_mailing_status(self, user_id, status):
         await self.cursor.execute(f"""UPDATE Users SET mailing_status = '{status}' WHERE user_id = {user_id}""")
         await self.connection.commit()
@@ -47,13 +53,11 @@ class Database:
         await self.connection.commit()
 
         for key, value in data.items():
-            new_value = 'new' in value.get('otherCodes', [])
-
             await self.cursor.execute('''
                 INSERT INTO bonuses (id, advertTextHtml, merchantName, openDate, closeDate, cashbackPercent, new)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
             ''', (key, value['advertTextHtml'], value['merchantName'], value['openDate'],
-                value['closeDate'], value['cashbackPercent'], new_value))
+                value['closeDate'], value['cashbackPercent'], value['new']))
 
             await self.connection.commit()
 
@@ -78,6 +82,7 @@ class Database:
     async def get_product_by_id(self, product_id):
         await self.cursor.execute("SELECT * FROM bonuses WHERE id = %s", (product_id,))
         result = await self.cursor.fetchone()
+        print(result)
         if result:
             product_info = {
                 'id': result[0],

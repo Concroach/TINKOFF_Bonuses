@@ -1,27 +1,40 @@
-import json
 import asyncio
-import httpx
+import aiohttp
+import json
 from bs4 import BeautifulSoup
 
+async def fetch(session, url):
+    async with session.get(url) as response:
+        text = await response.text()
+        soup = BeautifulSoup(text, 'html.parser')
+        title = soup.title.string if soup.title else "No Title"
+        return text, title
+
 async def load_cookie(bot):
-    async with httpx.AsyncClient() as client:
-        with open("cookies.json", "r") as f:
-            cookies_str = f.read()
+    cookies_file = "cookies.json"
+    url = "https://www.tinkoff.ru/bonuses/004/"
 
-        cookies = json.loads(cookies_str)
 
-        response = await client.get("https://www.tinkoff.ru/bonuses/004/", cookies=cookies)
-        await asyncio.sleep(5)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        title_tag = soup.title
+    # Загрузка кук из файла
+    try:
+        with open(cookies_file, 'r') as f:
+            cookies_list = json.load(f)
+    except FileNotFoundError:
+        cookies_list = []
 
-        if title_tag:
-            print("Заголовок страницы после входа:", title_tag.string.strip())
+    cookies_dict = {cookie['name']: cookie['value'] for cookie in cookies_list}
+
+    async with aiohttp.ClientSession(cookies=cookies_dict) as session:
+        response_text, title = await fetch(session, url)
+
+        if title:
+            await bot.send_message(chat_id='XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX', text=f"{title} Заголовок")
         else:
-            print("Заголовок страницы не найден")
+            await bot.send_message(chat_id='XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX', text="ЗАГОЛОВОК СТРАНИЦЫ НЕ НАЙДЕН")
 
-        new_cookies = {cookie['name']: cookie['value'] for cookie in response.cookies}
-        cookies.update(new_cookies)
+        new_cookies = session.cookie_jar.filter_cookies(url)
 
-        with open("cookies.json", "w") as f:
-            json.dump(cookies, f)
+        new_cookies_list = [{'name': name, 'value': cookie.value} for name, cookie in new_cookies.items()]
+
+    with open(cookies_file, 'w') as f:
+        json.dump(new_cookies_list, f)
